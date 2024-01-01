@@ -20,19 +20,49 @@ const Register = enum {
     R_R6,
     R_R7,
     R_PC,
-    R_COND,
+    R_COND, // provides info about most recent calculation
     R_COUNT,
 };
 
-// essentially, 10 registers but with zig flair
+fn register2usize(reg: Register) usize {
+    return @as(usize, @intFromEnum(reg));
+}
+
+// essentially, 10 registers but with Zig Flair
 // the original code in C used the fact that enums are just integers under the hood
 // here, it is more explicit: convert R_COUNT to an int, then convert it to usize (10),
 // with R_R0 being 0 in this enum.
 const registers = [register2usize(Register.R_COUNT)]u16{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-fn register2usize(reg: Register) usize {
-    return @as(usize, @intFromEnum(reg));
-}
+// we will capture information about the most recent calculation
+// by setting R_COND
+const Flag = enum(u8) {
+    Pos = 1 << 0, // P = 1
+    Zero = 1 << 1, // Z = 2
+    Neg = 1 << 2, // N = 4
+};
+
+// instruction opcodes
+const Op = enum {
+    Br, // Branch
+    Add, // Add
+    Load, // Load
+    Store, // Store
+    JumpSR, // Jump Register
+    And, // Bitwise And
+
+    LoadR, // Load Register
+    StoreR, // Store Register
+    RTI, // Unused
+
+    Not, // Bitwise Not
+    LoadI, // Load Indirect
+    StoreI, // Store Indirect
+    Jump, // Jump
+    RES, // Reserved
+    LoadEA, // load effective address
+    Trap, // execute trap
+};
 
 pub fn main() void {
     std.debug.print("{}\n", .{registers.len});
