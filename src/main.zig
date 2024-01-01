@@ -1,24 +1,39 @@
 const std = @import("std");
 
-pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+// 2 ^ 16 memory locations = 65,536 memory locations
+const MEMORY_MAX = 1 << 16;
+// 65,536 memory locations of 16 bits each (addressable with a 16 bit integer)
+// = 131,072 bits = 128 kilobytes (because 131072 / 1024 = 128)
+var memory = [MEMORY_MAX]u16{};
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+// 10 total registers, each 16 bits wide:
+// - 8 general purpose registers used for calculations (R0 - R7)
+// - 1 program counter register (PC)
+// - 1 condition flags register (COND)
+const Register = enum {
+    R_R0,
+    R_R1,
+    R_R2,
+    R_R3,
+    R_R4,
+    R_R5,
+    R_R6,
+    R_R7,
+    R_PC,
+    R_COND,
+    R_COUNT,
+};
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+// essentially, 10 registers but with zig flair
+// the original code in C used the fact that enums are just integers under the hood
+// here, it is more explicit: convert R_COUNT to an int, then convert it to usize (10),
+// with R_R0 being 0 in this enum.
+const registers = [register2usize(Register.R_COUNT)]u16{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    try bw.flush(); // don't forget to flush!
+fn register2usize(reg: Register) usize {
+    return @as(usize, @intFromEnum(reg));
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+pub fn main() void {
+    std.debug.print("{}\n", .{registers.len});
 }
