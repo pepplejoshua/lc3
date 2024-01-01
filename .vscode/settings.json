@@ -1,0 +1,28 @@
+{
+  "files.associations": {
+    "*.pr": "rust",
+    "*.h": "c",
+    "*.c": "c",
+    "iostream": "cpp"
+  },
+  // set tab size to 2 spaces for this project
+  "editor.tabSize": 2,
+  // set spaces instead of tabs
+  "editor.insertSpaces": true,
+  // trim trailing whitespace
+  "files.trimTrailingWhitespace": true,
+  // turn off detect indentation
+  "editor.detectIndentation": false,
+  // turn off format on paste
+  "editor.formatOnPaste": false,
+  // turn off format on type
+  "editor.formatOnType": false,
+  // turn on format on save
+  "editor.formatOnSave": true,
+  // turn on folding
+  "editor.folding": true,
+  // for Vc Format, keep else on same line as }
+  "C_Cpp.vcFormat.newLine.beforeElse": false,
+  // make sure to generate ) after I enter (
+  "editor.autoClosingBrackets": "always"
+}
