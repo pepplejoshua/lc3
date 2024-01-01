@@ -1,3 +1,13 @@
-# zig project template
-zig-cache
-zig-out
+# c++ gitignore file
+
+# Compiled Object files
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.a
+
+# Executables
+lc3vm
