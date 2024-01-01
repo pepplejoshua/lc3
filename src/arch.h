@@ -1,3 +1,5 @@
+#pragma once
+
 #define MEM_MAX (1 << 16) // 65536 locations in memory
 
 // 65536 locations each 16 bits wide
@@ -29,7 +31,7 @@ enum {
 // - 8 general purpose registers
 // - 1 program counter register
 // - 1 condition register
-uint16_t registers[R_COUNT];
+uint16_t reg[R_COUNT];
 
 enum {
   Op_Br = 0,  // branch
