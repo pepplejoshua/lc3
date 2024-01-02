@@ -24,7 +24,5 @@
   // turn on folding
   "editor.folding": true,
   // for Vc Format, keep else on same line as }
-  "C_Cpp.vcFormat.newLine.beforeElse": false,
-  // make sure to generate ) after I enter (
-  "editor.autoClosingBrackets": "always"
+  "C_Cpp.vcFormat.newLine.beforeElse": false
 }

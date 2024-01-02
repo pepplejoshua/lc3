@@ -138,6 +138,27 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Ldi: {
+          // load indirect
+          // |  op  | dst | PC Offset |
+          // | 1010 | 000 | 00000 0000 |
+          // dest => destination register
+          // PC Offset => immediate with 9 bits
+          // 1.     +offset
+          //     PC ======> addr_a (gives us an addr in mem)
+          //
+          // 2.  mem[addr_a] ===> addr_b (gives us an addr in mem)
+          //
+          // 3.  mem[addr_b] ===> val (gives us the value to load)
+          //
+          // r0 = mem[addr_b] |
+          // r0 = mem[mem[addr_a]] |
+          // r0 = mem[mem[PC + offset]]
+
+          u16 r0 = (instr >> 9) & 0x7;
+          u16 pc_offset = sext(instr & 0x1FF, 9);
+          reg[r0] = mem_read(mem_read(reg[R_PC] + pc_offset));
+
+          update_flags(r0);
           break;
         }
         case Op_Lea: {
