@@ -3,8 +3,6 @@
 
 using std::cout;
 
-typedef uint16_t u16;
-
 extern int read_img(char *);
 extern u16 mem_read(u16);
 
@@ -106,7 +104,7 @@ int main(int argc, char** argv) {
           u16 imm_f = (instr >> 5) && 0x1;
 
           if (imm_f) {
-            // sign extend the last 5 bits if we are in
+            // sign extend the last 5 bits since we are in
             // immediate mode
             u16 imm5 = sext(instr & 0x1F, 5);
             reg[r0] = reg[r1] + imm5;
@@ -120,12 +118,64 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_And: {
+          // Register mode
+          // dst => destination register
+          // sr1 => source register 1
+          // F = 0 => register mode
+          // sr2 => source register 2
+          // |  op  | dst | sr1 | F | 00 | sr2 |
+          // | 0101 | 000 | 000 | 0 | 00 | 000 |
+          //
+          // OR
+          //
+          // Immediate mode
+          // dst => destination register
+          // sr1 => source register 1
+          // F = 1 => immediate mode
+          // imm5 => an immediate 2's comp number -16..=15
+          // |  op  | dst | sr1 | F |  imm5 |
+          // | 0101 | 000 | 000 | 0 | 00000 |
+
+          // dest
+          u16 r0 = (instr >> 9) & 0x7;
+          // sr1
+          u16 r1 = (instr >> 6) & 0x7;
+          // flag
+          u16 imm_f = (instr >> 5) && 0x1;
+
+          if (imm_f) {
+            // sign extend the last 5 bits since we are in
+            // immediate mode
+            u16 imm5 = sext(instr & 0x1F, 5);
+            reg[r0] = reg[r1] & imm5;
+          } else {
+            // we are in register mode
+            u16 r2 = instr & 0x7;
+            reg[r0] = reg[r1] & reg[r2];
+          }
+
+          update_flags(r0);
           break;
         }
         case Op_Not: {
           break;
         }
         case Op_Br: {
+          // |  op  | n | z | p | PC Offset |
+          // | 0000 | 0 | 0 | 0 | 000000000 |
+          // n => if last operation produced negative result
+          // z => if last operation produced 0
+          // p => if last operation produced positive result
+          // all flags can be enabled together or only 1 can be
+          // enabled
+          // if all flags are enabled, that is an unconditional
+          // branch
+          u16 flags = (instr >> 9) & 0x7;
+
+          if (flags & reg[R_COND]) {
+            u16 pc_offset = sext(instr & 0x1FF, 9);
+            reg[R_PC] = reg[R_PC] + pc_offset;
+          }
           break;
         }
         case Op_Jmp: {

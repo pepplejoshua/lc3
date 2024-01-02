@@ -1,11 +1,12 @@
 #pragma once
 
+typedef uint16_t u16;
 #define MEM_MAX (1 << 16) // 65536 locations in memory
 
 // 65536 locations each 16 bits wide
 // 65536 * (16 / 8)
 // 131072 bytes = 128 KB
-uint16_t mem[MEM_MAX];
+u16 mem[MEM_MAX];
 
 enum {
   R_R0 = 0,
@@ -22,16 +23,16 @@ enum {
 };
 
 enum {
-  FL_POS = 1 << 0, // P = 1
-  FL_ZRO = 1 << 1, // Z = 2
-  FL_NEG = 1 << 2, // N = 4
+  FL_POS = 1 << 0, // P = 001 or 1
+  FL_ZRO = 1 << 1, // Z = 010 or 2
+  FL_NEG = 1 << 2, // N = 100 or 4
 };
 
 // 10 registers
 // - 8 general purpose registers
 // - 1 program counter register
 // - 1 condition register
-uint16_t reg[R_COUNT];
+u16 reg[R_COUNT];
 
 enum {
   Op_Br = 0,  // branch
