@@ -3,10 +3,12 @@
 
 using std::cout;
 
-extern int read_img(char *);
-extern uint16_t mem_read(uint16_t);
+typedef uint16_t u16;
 
-uint16_t sext(uint16_t x, int bit_count) {
+extern int read_img(char *);
+extern u16 mem_read(u16);
+
+u16 sext(u16 x, int bit_count) {
   // e.g: 01111 or 15 (which is also 5 bits) to 16 bits
   // 00000 & 1 (check if it is negative) = 0
   // since it isn't, it is returned unchanged
@@ -29,6 +31,14 @@ uint16_t sext(uint16_t x, int bit_count) {
   return x;
 }
 
+void update_flags(u16 res_reg) {
+  if (reg[res_reg] == 0)
+    reg[R_COND] = FL_ZRO;
+  else if (reg[res_reg] >> 15) // leftmost bit is 1, so negative
+    reg[R_COND] = FL_NEG;
+  else
+    reg[R_COND] = FL_POS;
+}
 int main(int argc, char** argv) {
     if (argc < 2) {
         // show usage
@@ -54,7 +64,7 @@ int main(int argc, char** argv) {
     bool running = true;
     while (running) {
       // read current instruction
-      uint16_t instr = mem_read(reg[R_PC]);
+      u16 instr = mem_read(reg[R_PC]);
       reg[R_PC]++; // move to next instruction
       // |  op  |
       // | abcd | 0000 | 0000 | 0000 |
@@ -66,7 +76,7 @@ int main(int argc, char** argv) {
       // https://gist.github.com/pepplejoshua/853145d5c89c200894e3a00cd662508a
       // some throw away code decoding 16 bit instructions:
       // https://gist.github.com/pepplejoshua/490fe6d201b29f940ff2564956453a75
-      uint16_t op = instr >> 12;
+      u16 op = instr >> 12;
 
       switch (op) {
         case Op_Add: {
@@ -88,11 +98,25 @@ int main(int argc, char** argv) {
           // |  op  | dst | sr1 | F |  imm5 |
           // | 0001 | 000 | 000 | 0 | 00000 |
 
-          uint16_t dst_msk = 0b0000111000000000;
-          uint16_t sr1_msk = 0b0000000111000000;
-          uint16_t mode_msk = 0b0000000000100000;
+          // dest
+          u16 r0 = (instr >> 9) & 0x7;
+          // sr1
+          u16 r1 = (instr >> 6) & 0x7;
+          // flag
+          u16 imm_f = (instr >> 5) && 0x1;
 
-          auto mode = instr & mode_msk;
+          if (imm_f) {
+            // sign extend the last 5 bits if we are in
+            // immediate mode
+            u16 imm5 = sext(instr & 0x1F, 5);
+            reg[r0] = reg[r1] + imm5;
+          } else {
+            // we are in register mode
+            u16 r2 = instr & 0x7;
+            reg[r0] = reg[r1] + reg[r2];
+          }
+
+          update_flags(r0);
           break;
         }
         case Op_And: {

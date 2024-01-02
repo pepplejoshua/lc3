@@ -3,7 +3,9 @@
     "*.pr": "rust",
     "*.h": "c",
     "*.c": "c",
-    "iostream": "cpp"
+    "iostream": "cpp",
+    "ostream": "cpp",
+    "__assert": "cpp"
   },
   // set tab size to 2 spaces for this project
   "editor.tabSize": 2,
