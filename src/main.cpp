@@ -6,6 +6,29 @@ using std::cout;
 extern int read_img(char *);
 extern uint16_t mem_read(uint16_t);
 
+uint16_t sext(uint16_t x, int bit_count) {
+  // e.g: 01111 or 15 (which is also 5 bits) to 16 bits
+  // 00000 & 1 (check if it is negative) = 0
+  // since it isn't, it is returned unchanged
+
+  // more applicably,
+  // e.g: 10101 or -11 (which is 5 bits) to 16 bits
+  // 00001 & 1 (check if it is negative) = 1
+  if  ((x >> (bit_count - 1)) & 1) {
+    // since it is, then we can extend it with 1s
+    // 0xFFFF = 1111 1111 1111 1111
+    // when we shift it left by bit count, in this case
+    // we get:
+    // 1111 1111 1111 1111 << 5
+    // = 1111 1111 1110 0000
+    // then we |= to imprint the lower 5 bits of x
+    // so x = 1111 1111 1111 0101, which is also -11
+    // which we can return.
+    x |= (0xFFFF << bit_count);
+  }
+  return x;
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         // show usage
@@ -41,10 +64,35 @@ int main(int argc, char** argv) {
       // | 0000 | 0000 | 0000 | abcd |
       // notes on bitwise shifts:
       // https://gist.github.com/pepplejoshua/853145d5c89c200894e3a00cd662508a
+      // some throw away code decoding 16 bit instructions:
+      // https://gist.github.com/pepplejoshua/490fe6d201b29f940ff2564956453a75
       uint16_t op = instr >> 12;
 
       switch (op) {
         case Op_Add: {
+          // Register mode
+          // dst => destination register
+          // sr1 => source register 1
+          // F = 0 => register mode
+          // sr2 => source register 2
+          // |  op  | dst | sr1 | F | 00 | sr2 |
+          // | 0001 | 000 | 000 | 0 | 00 | 000 |
+          //
+          // OR
+          //
+          // Immediate mode
+          // dst => destination register
+          // sr1 => source register 1
+          // F = 1 => immediate mode
+          // imm5 => an immediate 2's comp number -16..=15
+          // |  op  | dst | sr1 | F |  imm5 |
+          // | 0001 | 000 | 000 | 0 | 00000 |
+
+          uint16_t dst_msk = 0b0000111000000000;
+          uint16_t sr1_msk = 0b0000000111000000;
+          uint16_t mode_msk = 0b0000000000100000;
+
+          auto mode = instr & mode_msk;
           break;
         }
         case Op_And: {
