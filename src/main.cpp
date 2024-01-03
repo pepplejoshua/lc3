@@ -179,9 +179,61 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Jmp: {
+          // Jmp mode
+          // reg => any registers that isn't R_R7 or 0b111
+          // PC <- reg
+          // |  op  | 000 | reg | 000000 |
+          // | 1100 | 000 | 000 | 000000 |
+          // Above instruction is:
+          // Jmp R0  =>  PC <- R0
+          //
+          // OR
+          //
+          // Ret mode
+          // Special case of Jmp where we get linkage back to
+          // the next instruction of the caller of a subroutine
+          // PC <- R7
+          // |  op  | 000 | reg | 000000 |
+          // | 1100 | 000 | 111 | 000000 |
+          // Ret  => PC <- R7
+          u16 base_reg = (instr >> 6) && 0x7;
+          reg[R_PC] = reg[base_reg];
           break;
         }
         case Op_Jsr: {
+          // Jump to Subroutine
+          // To be combined with RET instruction (special Jmp)
+          // it stores the location of the instruction following it
+          // in R7 so we can return to it. Essentially tracking call site
+          // information so callees can return to callers
+          //
+          // Jsr mode
+          // |  op  | F |   PC Offset |
+          // | 0100 | 1 | 00000000000 |
+          // 1. R7 = PC
+          // 2. PC += sext(PC Offset)
+          // OR
+          //
+          // Jsrr mode
+          // |  op  | F | 00 | reg | 000000 |
+          // | 0100 | 0 | 00 | 000 | 000000 |
+          // 1. R7 = PC
+          // 2. PC = reg
+
+          // check which mode the instruction is in
+          u16 flag = (instr >> 11) & 1;
+          reg[R_R7] = reg[R_PC];
+
+          // Jsr mode
+          if (flag) {
+            // collect the lower 11 bits and sign extend them
+            u16 pc_offset = sext(instr & 0x07FF, 11);
+            reg[R_PC] += pc_offset;
+          } else {
+            // Jsrr mode
+            u16 base_reg = (instr >> 6) && 0x7;
+            reg[R_PC] = reg[base_reg];
+          }
           break;
         }
         case Op_Ld: {
@@ -190,7 +242,7 @@ int main(int argc, char** argv) {
         case Op_Ldi: {
           // load indirect
           // |  op  | dst | PC Offset |
-          // | 1010 | 000 | 00000 0000 |
+          // | 1010 | 000 | 000000000 |
           // dest => destination register
           // PC Offset => immediate with 9 bits
           // 1.     +offset
