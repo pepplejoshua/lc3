@@ -158,6 +158,12 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Not: {
+          // |  op  | dst | src |
+          // | 1001 | 010 | 000 | 111111 |
+          u16 dst = (instr >> 9) & 0x7;
+          u16 src = (instr >> 6) & 0x7;
+          reg[dst] = ~reg[src];
+          update_flags(dst);
           break;
         }
         case Op_Br: {
@@ -195,7 +201,7 @@ int main(int argc, char** argv) {
           // PC <- R7
           // |  op  | 000 | reg | 000000 |
           // | 1100 | 000 | 111 | 000000 |
-          // Ret  => PC <- R7
+          // Ret => PC <- R7
           u16 base_reg = (instr >> 6) && 0x7;
           reg[R_PC] = reg[base_reg];
           break;
@@ -237,6 +243,18 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Ld: {
+          // loads the contents of a memory location (relative to PC)
+          // into destination register
+          // |  op  | dst | PC Offset |
+          // | 0010 | 010 | 000000000 |
+          // dst => R2
+          // R2 <- mem[PC + sext(PC Offset)]
+
+          u16 dst = (instr >> 9) & 0x7;
+          u16 pc_offset = sext(instr & 0x1FF, 9);
+          reg[dst] = mem_read(reg[R_PC] + pc_offset);
+
+          update_flags(dst);
           break;
         }
         case Op_Ldi: {
@@ -263,10 +281,36 @@ int main(int argc, char** argv) {
           update_flags(r0);
           break;
         }
+        case Op_Ldr: {
+          // dst <- mem[src + offset]
+          // |  op  | dst | src | offset |
+          // | 0110 | 010 | 000 | 000000 |
+          u16 dst = (instr >> 9) & 0x7;
+          u16 src = (instr >> 6) & 0x7;
+          u16 offset = sext((instr & 0x3F), 6);
+          reg[dst] = mem_read(reg[src] + offset);
+          update_flags(dst);
+          break;
+        }
         case Op_Lea: {
+          // load effective address gets the address, not the content
+          // at the address, unlike Ld which gets the content
+          // dst <- PC + PC offset
+          // |  op  | dst | PC Offset |
+          // | 1110 | 010 | 000000000 |
+          // Lea R4, LABEL
+          // R4 <- addr(LABEL)
+
+          u16 dst = (instr >> 6) & 0x7;
+          u16 pc_offset = sext(instr & 0x1FF, 9);
+          reg[dst] = reg[R_PC] + pc_offset;
+          update_flags(dst);
           break;
         }
         case Op_St: {
+          break;
+        }
+        case Op_Sti: {
           break;
         }
         case Op_Str: {
