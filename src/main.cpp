@@ -5,6 +5,7 @@ using std::cout;
 
 extern int read_img(char *);
 extern u16 mem_read(u16);
+extern void mem_write(u16 addr, u16 val);
 
 u16 sext(u16 x, int bit_count) {
   // e.g: 01111 or 15 (which is also 5 bits) to 16 bits
@@ -37,6 +38,7 @@ void update_flags(u16 res_reg) {
   else
     reg[R_COND] = FL_POS;
 }
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         // show usage
@@ -63,7 +65,8 @@ int main(int argc, char** argv) {
     while (running) {
       // read current instruction
       u16 instr = mem_read(reg[R_PC]);
-      reg[R_PC]++; // move to next instruction
+      // move to next instruction
+      reg[R_PC]++;
       // |  op  |
       // | abcd | 0000 | 0000 | 0000 |
       // so we move right shift the instruction right by 12
@@ -167,8 +170,8 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Br: {
-          // |  op  | n | z | p | PC Offset |
-          // | 0000 | 0 | 0 | 0 | 000000000 |
+          // |  op  | n | z | p |   PC Offset |
+          // | 0000 | 0 | 0 | 0 | 000_000_000 |
           // n => if last operation produced negative result
           // z => if last operation produced 0
           // p => if last operation produced positive result
@@ -245,8 +248,8 @@ int main(int argc, char** argv) {
         case Op_Ld: {
           // loads the contents of a memory location (relative to PC)
           // into destination register
-          // |  op  | dst | PC Offset |
-          // | 0010 | 010 | 000000000 |
+          // |  op  | dst |   PC Offset |
+          // | 0010 | 010 | 000_000_000 |
           // dst => R2
           // R2 <- mem[PC + sext(PC Offset)]
 
@@ -259,8 +262,8 @@ int main(int argc, char** argv) {
         }
         case Op_Ldi: {
           // load indirect
-          // |  op  | dst | PC Offset |
-          // | 1010 | 000 | 000000000 |
+          // |  op  | dst |   PC Offset |
+          // | 1010 | 000 | 000_000_000 |
           // dest => destination register
           // PC Offset => immediate with 9 bits
           // 1.     +offset
@@ -282,13 +285,14 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Ldr: {
-          // dst <- mem[src + offset]
-          // |  op  | dst | src | offset |
+          // dst <- mem[reg + offset]
+          // reg <- base register to offset from
+          // |  op  | dst | reg | offset |
           // | 0110 | 010 | 000 | 000000 |
           u16 dst = (instr >> 9) & 0x7;
-          u16 src = (instr >> 6) & 0x7;
-          u16 offset = sext((instr & 0x3F), 6);
-          reg[dst] = mem_read(reg[src] + offset);
+          u16 b_reg = (instr >> 6) & 0x7;
+          u16 offset = sext(instr & 0x3F, 6);
+          reg[dst] = mem_read(reg[b_reg] + offset);
           update_flags(dst);
           break;
         }
@@ -296,8 +300,8 @@ int main(int argc, char** argv) {
           // load effective address gets the address, not the content
           // at the address, unlike Ld which gets the content
           // dst <- PC + PC offset
-          // |  op  | dst | PC Offset |
-          // | 1110 | 010 | 000000000 |
+          // |  op  | dst |   PC Offset |
+          // | 1110 | 010 | 000_000_000 |
           // Lea R4, LABEL
           // R4 <- addr(LABEL)
 
@@ -308,12 +312,49 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_St: {
+          // store to memory
+          // |  op  | src |   PC Offset |
+          // | 0011 | 000 | 000_000_000 |
+          // mem[PC + PC Offset] = src
+          u16 src = (instr >> 9) & 0x7;
+          u16 pc_offset = sext(instr & 0x1FF, 9);
+          mem_write(reg[R_PC] + pc_offset, reg[src]);
           break;
         }
         case Op_Sti: {
+          // store indirect, the counterpart of Ldi
+          // |  op  | src |   PC Offset |
+          // | 1011 | 001 | 000_000_000 |
+          // src => source register
+          // PC Offset => immediate with 9 bits
+          // 1.     +offset
+          //     PC ======> addr_a (gives us an addr in mem)
+          //
+          // 2.  mem[addr_a] ===> addr_b (gives us an addr in mem)
+          //
+          // 3.  mem[addr_b] ===> val (gives us the location to store at)
+          //
+          // mem[addr_b] = r1 |
+          // mem[mem[addr_a]] = r1 |
+          // mem[mem[PC + offset]] = r1
+
+          u16 src = (instr >> 9) & 0x7;
+          u16 pc_offset = sext(instr & 0x1FF, 9);
+          u16 addr_a = reg[R_PC] + pc_offset;
+          u16 addr_b = mem_read(addr_a);
+          mem_write(addr_b, reg[src]);
           break;
         }
         case Op_Str: {
+          // mem[reg + offset] <- src
+          // reg <- base register to offset from
+          // src <- register whose contents are to be stored
+          // |  op  | src | reg | offset |
+          // | 0111 | 001 | 000 | 000000 |
+          u16 src = (instr >> 9) & 0x7;
+          u16 b_reg = (instr >> 6) & 0x7;
+          u16 offset = sext(instr & 0x3f, 6);
+          mem_write(reg[b_reg] + offset, reg[src]);
           break;
         }
         case Op_Trap: {
