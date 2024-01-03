@@ -52,3 +52,12 @@ enum {
   Op_Lea,     // load effective address
   Op_Trap,    // execute trap
 };
+
+enum {
+  TRAP_GET_C = 0x20, // get character from keyboard, not echoed into terminal
+  TRAP_OUT_C = 0x21, // output a character to terminal
+  TRAP_PUT_S = 0x22, // output a word string
+  TRAP_IN_C = 0x23, // get character from keyboard, echoed onto the terminal
+  TRAP_PUT_SP = 0x24, // output a byte string
+  TRAP_HALT = 0x25, // halt the program
+};

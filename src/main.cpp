@@ -358,6 +358,56 @@ int main(int argc, char** argv) {
           break;
         }
         case Op_Trap: {
+          // |  op  | 0000 | trapvect |
+          // | 1111 | 0000 | xxxxxxxx |
+          // this is for trap routines for performing
+          // fairly common routines
+          // the value of the 8 bits of trapvect will determine
+          // which trap routine will be called
+          // we will also track the PC for the next instruction so we
+          // can return to it
+          u16 trapvect8 = (instr & 0xFF);
+
+          // track the return point
+          reg[R_R7] = reg[R_PC];
+          switch (trapvect8) {
+            case TRAP_GET_C: {
+              break;
+            }
+            case TRAP_OUT_C: {
+              break;
+            }
+            case TRAP_PUT_S: {
+              // used to output a null terminated string
+              // similar to printf in C
+              // R0 contains the start address of the string,
+              // one character per memory locations. When we see
+              // an x0000 in a memory location.
+              // this means each character is stored in 16 bits,
+              // not 8.
+
+              // we get to the start of the string by directly
+              // offsetting the pointer of the memory
+              u16 *c = mem + reg[R_R0];
+
+              // not x0000
+              while (*c) {
+                // convert the value at c to a character and print it
+                putc((char) *c, stdout);
+                ++c; // go to next character
+              }
+              break;
+            }
+            case TRAP_IN_C: {
+              break;
+            }
+            case TRAP_PUT_SP: {
+              break;
+            }
+            case TRAP_HALT: {
+              break;
+            }
+          }
           break;
         }
         case Op_RES:
